@@ -3,14 +3,15 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using Tokens;
     using Writer;
 
     /// <inheritdoc />
     /// <summary>
-    /// Show one or more text strings, allowing individual glyph positioning. 
+    /// Show one or more text strings, allowing individual glyph positioning.
     /// Each element of array can be a string or a number.
-    /// If the element is a string, this operator shows the string. 
+    /// If the element is a string, this operator shows the string.
     /// If it is a number, the operator adjusts the text position by that amount
     /// </summary>
     public class ShowTextsWithPositioning : IGraphicsStateOperation
@@ -76,6 +77,13 @@
             stream.WriteWhiteSpace();
             stream.WriteText(Symbol);
             stream.WriteNewLine();
+        }
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            var a = string.Join("", Array.Select(x => x.ToString()));
+            return $"{a} {Symbol}";
         }
     }
 }
