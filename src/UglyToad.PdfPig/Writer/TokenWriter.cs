@@ -92,7 +92,7 @@
         /// <param name="outputStream">The stream to write the token to.</param>
         public void WriteToken(IToken token, Stream outputStream)
         {
-            if (token == null)
+            if (token is null)
             {
                 WriteNullToken(outputStream);
                 return;
@@ -164,7 +164,7 @@
 
             long firstObjectNumber = 0;
             long currentObjNum = 0;
-            var items = new List<XrefSeries.OffsetAndGeneration>
+            var items = new List<XrefSeries.OffsetAndGeneration?>
             {
                 // Zero entry
                 null
@@ -181,7 +181,7 @@
                 else
                 {
                     sets.Add(new XrefSeries(firstObjectNumber, items));
-                    items = new List<XrefSeries.OffsetAndGeneration>
+                    items = new List<XrefSeries.OffsetAndGeneration?>
                     {
                         new XrefSeries.OffsetAndGeneration(item.Value, item.Key.Generation)
                     };
@@ -378,7 +378,7 @@
                 WriteName(pair.Key, outputStream);
 
                 // handle scenario where PdfPig has a null value under some circumstances
-                if (pair.Value == null)
+                if (pair.Value is null)
                 {
                     WriteToken(NullToken.Instance, outputStream);
                 }
@@ -433,7 +433,7 @@
             {
                 if (c < 33 || c > 126 || DelimiterChars.Contains(c))
                 {
-                    var str = Hex.GetString(new[] { (byte)c });
+                    var str = Hex.GetString([(byte)c]);
                     sb.Append('#').Append(str);
                 }
                 else
@@ -516,21 +516,19 @@
             outputStream.Write(StreamEnd, 0, StreamEnd.Length);
         }
 
-        private static readonly int[] EscapeNeeded = new int[]
-        {
+        private static readonly int[] EscapeNeeded =
+        [
             '\r', '\n', '\t', '\b', '\f', '\\'
-        };
+        ];
 
-        private static readonly int[] Escaped = new int[]
-        {
+        private static readonly int[] Escaped =
+        [
             'r', 'n', 't', 'b', 'f', '\\'
-        };
+        ];
 
         /// <summary>
         /// Write string to the stream, with whitespace at the end
         /// </summary>
-        /// <param name="stringToken"></param>
-        /// <param name="outputStream"></param>
         protected virtual void WriteString(StringToken stringToken, Stream outputStream)
         {
             outputStream.WriteByte(StringStart);
@@ -541,41 +539,43 @@
                 // have these chars but seems like internally this isn't obeyed (see:
                 // CanCreateDocumentInformationDictionaryWithNonAsciiCharacters test) and it may
                 // happen during parsing as well -> switch to unicode
-                if (stringToken.Data.Any(x => x > 255))
+
+                var data = stringToken.Data.ToCharArray();
+                if (data.Any(x => x > 255))
                 {
-                    var data = new StringToken(stringToken.Data, StringToken.Encoding.Utf16BE).GetBytes();
-                    outputStream.Write(data, 0, data.Length);
+                    data = new StringToken(stringToken.Data, StringToken.Encoding.Utf16BE)
+                        .GetBytes()
+                        .Select(b => (char)b)
+                        .ToArray();
                 }
-                else
+
+                int ei;
+                for (var i = 0; i < data.Length; i++)
                 {
-                    int ei;
-                    for (var i = 0; i < stringToken.Data.Length; i++)
+                    var c = (int)data[i];
+                    if (c == (int)'(' || c == (int)')') // wastes a little space if escaping not needed but better than forward searching
                     {
-                        var c = (int)stringToken.Data[i];
-                        if (c == (int)'(' || c == (int)')') // wastes a little space if escaping not needed but better than forward searching
-                        {
-                            outputStream.WriteByte((byte)'\\');
-                            outputStream.WriteByte((byte)c);
-                        }
-                        else if ((ei = Array.IndexOf(EscapeNeeded, c)) > -1)
-                        {
-                            outputStream.WriteByte((byte)'\\');
-                            outputStream.WriteByte((byte)Escaped[ei]);
-                        }
-                        else if (c < 32 || c > 126) // non printable
-                        {
-                            var b3 = c / 64;
-                            var b2 = (c - b3 * 64) / 8;
-                            var b1 = c % 8;
-                            outputStream.WriteByte((byte)'\\');
-                            outputStream.WriteByte((byte)(b3 + '0'));
-                            outputStream.WriteByte((byte)(b2 + '0'));
-                            outputStream.WriteByte((byte)(b1 + '0'));
-                        }
-                        else
-                        {
-                            outputStream.WriteByte((byte)c);
-                        }
+                        outputStream.WriteByte((byte)'\\');
+                        outputStream.WriteByte((byte)c);
+                    }
+                    else if ((ei = Array.IndexOf(EscapeNeeded, c)) > -1)
+                    {
+                        outputStream.WriteByte((byte)'\\');
+                        outputStream.WriteByte((byte)Escaped[ei]);
+                    }
+                    else if (c < 32 || c > 126) // non printable
+                    {
+                        var b3 = c / 64;
+                        var b2 = (c - b3 * 64) / 8;
+                        var b1 = c % 8;
+                        outputStream.WriteByte((byte)'\\');
+                        outputStream.WriteByte((byte)(b3 + '0'));
+                        outputStream.WriteByte((byte)(b2 + '0'));
+                        outputStream.WriteByte((byte)(b1 + '0'));
+                    }
+                    else
+                    {
+                        outputStream.WriteByte((byte)c);
                     }
                 }
             }
@@ -661,9 +661,9 @@
         {
             public long First { get; }
 
-            public IReadOnlyList<OffsetAndGeneration> Offsets { get; }
+            public IReadOnlyList<OffsetAndGeneration?> Offsets { get; }
 
-            public XrefSeries(long first, IReadOnlyList<OffsetAndGeneration> offsets)
+            public XrefSeries(long first, IReadOnlyList<OffsetAndGeneration?> offsets)
             {
                 First = first;
                 Offsets = offsets;

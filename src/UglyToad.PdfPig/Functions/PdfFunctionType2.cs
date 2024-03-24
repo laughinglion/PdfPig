@@ -11,7 +11,7 @@
         /// <summary>
         /// Exponential interpolation function
         /// </summary>
-        internal PdfFunctionType2(DictionaryToken function, ArrayToken domain, ArrayToken range, ArrayToken c0, ArrayToken c1, double n)
+        internal PdfFunctionType2(DictionaryToken function, ArrayToken domain, ArrayToken? range, ArrayToken c0, ArrayToken c1, double n)
             : base(function, domain, range)
         {
             C0 = c0;
@@ -19,7 +19,7 @@
             N = n;
         }
 
-        internal PdfFunctionType2(StreamToken function, ArrayToken domain, ArrayToken range, ArrayToken c0, ArrayToken c1, double n)
+        internal PdfFunctionType2(StreamToken function, ArrayToken domain, ArrayToken? range, ArrayToken c0, ArrayToken c1, double n)
             : base(function, domain, range)
         {
             C0 = c0;
@@ -40,7 +40,7 @@
             // exponential interpolation
             double xToN = Math.Pow(input[0], N); // x^exponent
 
-            double[] result = new double[Math.Min(C0.Length, C1.Length)];
+            var result = new double[Math.Min(C0.Length, C1.Length)];
             for (int j = 0; j < result.Length; j++)
             {
                 double c0j = ((NumericToken)C0[j]).Double;

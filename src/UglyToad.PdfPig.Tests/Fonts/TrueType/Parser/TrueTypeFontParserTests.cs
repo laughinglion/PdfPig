@@ -5,11 +5,9 @@ namespace UglyToad.PdfPig.Tests.Fonts.TrueType.Parser
     using PdfPig.Fonts.TrueType;
     using PdfPig.Fonts.TrueType.Parser;
     using PdfPig.Fonts.TrueType.Tables;
-    using System;
     using System.Globalization;
     using System.Text;
     using System.Text.RegularExpressions;
-    using Xunit;
 
     public class TrueTypeFontParserTests
     {
@@ -98,7 +96,7 @@ namespace UglyToad.PdfPig.Tests.Fonts.TrueType.Parser
 
             foreach (var s in data)
             {
-                var parts = s.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var parts = s.Split(' ').Where(x => x.Length > 0).ToArray();
 
                 var name = parts[0];
 

@@ -5,7 +5,6 @@
     using System.Globalization;
     using System.Text;
     using Core;
-    using Util.JetBrains.Annotations;
 
     /// <summary>
     /// Brute force search for all objects in the document.
@@ -19,10 +18,9 @@
         /// </summary>
         /// <param name="bytes">The bytes of the document.</param>
         /// <returns>The object keys and offsets for the objects in this document.</returns>
-        [NotNull]
         public static IReadOnlyDictionary<IndirectReference, long> GetObjectLocations(IInputBytes bytes)
         {
-            if (bytes == null)
+            if (bytes is null)
             {
                 throw new ArgumentNullException(nameof(bytes));
             }
@@ -198,7 +196,7 @@
             return long.MaxValue;
         }
 
-        private static bool IsStartObjMarker(byte[] data)
+        private static bool IsStartObjMarker(ReadOnlySpan<byte> data)
         {
             if (!ReadHelper.IsWhitespace(data[0]))
             {

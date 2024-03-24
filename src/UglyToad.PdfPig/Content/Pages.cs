@@ -81,17 +81,17 @@
             {
                 currentNode = pageStack.Pop();
 
-                if (currentNode.NodeDictionary.TryGet(NameToken.Resources, pdfScanner, out DictionaryToken resourcesDictionary))
+                if (currentNode.NodeDictionary.TryGet(NameToken.Resources, pdfScanner, out DictionaryToken? resourcesDictionary))
                 {
                     pageTreeMembers.ParentResources.Enqueue(resourcesDictionary);
                 }
 
-                if (currentNode.NodeDictionary.TryGet(NameToken.MediaBox, pdfScanner, out ArrayToken mediaBox))
+                if (currentNode.NodeDictionary.TryGet(NameToken.MediaBox, pdfScanner, out ArrayToken? mediaBox))
                 {
                     pageTreeMembers.MediaBox = new MediaBox(mediaBox.ToRectangle(pdfScanner));
                 }
 
-                if (currentNode.NodeDictionary.TryGet(NameToken.Rotate, pdfScanner, out NumericToken rotateToken))
+                if (currentNode.NodeDictionary.TryGet(NameToken.Rotate, pdfScanner, out NumericToken? rotateToken))
                 {
                     pageTreeMembers.Rotation = rotateToken.Int;
                 }
@@ -132,7 +132,7 @@
                 typeof(ParsingOptions)
             });
 
-            if (constructor == null)
+            if (constructor is null)
             {
                 throw new InvalidOperationException($"Could not find valid constructor for page factory of type '{typeof(TPageFactory)}'. " +
                                                     "The page factory should have a constructor with the following parameters: " +
@@ -167,7 +167,7 @@
             return node;
         }
 
-        internal PageTreeNode GetPageByReference(IndirectReference reference)
+        internal PageTreeNode? GetPageByReference(IndirectReference reference)
         {
             foreach (var page in pagesByNumber)
             {

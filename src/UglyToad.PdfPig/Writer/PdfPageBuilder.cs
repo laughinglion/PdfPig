@@ -1,5 +1,9 @@
 ﻿namespace UglyToad.PdfPig.Writer
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
     using Content;
     using Core;
     using Fonts;
@@ -13,10 +17,6 @@
     using Graphics.Operations.TextShowing;
     using Graphics.Operations.TextState;
     using Images;
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
     using PdfFonts;
     using Tokens;
     using Graphics.Operations.PathPainting;
@@ -34,10 +34,13 @@
             this.prefix = prefix;
         }
 
-        private string ExtractPrefix(string name)
+        private string ExtractPrefix(string? name)
         {
-            if (name == null)
+            if (name is null)
+            {
                 return prefix;
+            }
+
             var i = 0;
             while (i < name.Length && (name[i] < '0' || name[i] > '9'))
             {
@@ -47,9 +50,9 @@
             return i != 0 ? name.Substring(0, i) : prefix;
         }
 
-        public string NewName(string orginalName = null)
+        public string NewName(string? originalName = null)
         {
-            var newPrefix = ExtractPrefix(orginalName);
+            var newPrefix = ExtractPrefix(originalName);
 
             var name = $"{newPrefix}{key}";
 
@@ -91,7 +94,7 @@
         private IPageContentStream currentStream;
 
         // links to be resolved when all page references are available
-        internal readonly List<(DictionaryToken token, PdfAction action)> links;
+        internal readonly List<(DictionaryToken token, PdfAction action)>? links;
 
         // maps fonts added using PdfDocumentBuilder to page font names
         private readonly Dictionary<Guid, NameToken> documentFonts = new Dictionary<Guid, NameToken>();
@@ -380,7 +383,7 @@
         }
 
         /// <summary>
-        /// Sets the stroke color with the exact decimal value between 0 and 1 for any following operations to the RGB value. Use <see cref="ResetColor"/> to reset.
+        /// Sets the stroke color with the exact value between 0 and 1 for any following operations to the RGB value. Use <see cref="ResetColor"/> to reset.
         /// </summary>
         /// <param name="r">Red - 0 to 1</param>
         /// <param name="g">Green - 0 to 1</param>
@@ -431,12 +434,12 @@
         /// <returns>The letters from the input text with their corresponding size and position.</returns>
         public IReadOnlyList<Letter> MeasureText(string text, double fontSize, PdfPoint position, PdfDocumentBuilder.AddedFont font)
         {
-            if (font == null)
+            if (font is null)
             {
                 throw new ArgumentNullException(nameof(font));
             }
 
-            if (text == null)
+            if (text is null)
             {
                 throw new ArgumentNullException(nameof(text));
             }
@@ -476,12 +479,12 @@
         /// <returns>The letters from the input text with their corresponding size and position.</returns>
         public IReadOnlyList<Letter> AddText(string text, double fontSize, PdfPoint position, PdfDocumentBuilder.AddedFont font)
         {
-            if (font == null)
+            if (font is null)
             {
                 throw new ArgumentNullException(nameof(font));
             }
 
-            if (text == null)
+            if (text is null)
             {
                 throw new ArgumentNullException(nameof(text));
             }
@@ -548,7 +551,7 @@
 
         private NameToken GetAddedFont(PdfDocumentBuilder.AddedFont font)
         {
-            if (!documentFonts.TryGetValue(font.Id, out NameToken value))
+            if (!documentFonts.TryGetValue(font.Id, out NameToken? value))
             {
                 value = NameToken.Create($"F{nextFontId++}");
                 var resources = pageDictionary.GetOrCreateDict(NameToken.Resources);
@@ -725,7 +728,7 @@
             var widthToken = new NumericToken(png.Width);
             var heightToken = new NumericToken(png.Height);
 
-            IndirectReferenceToken smaskReference = null;
+            IndirectReferenceToken? smaskReference = null;
 
             if (png.HasAlphaChannel && documentBuilder.ArchiveStandard != PdfAStandard.A1B && documentBuilder.ArchiveStandard != PdfAStandard.A1A)
             {
@@ -815,7 +818,7 @@
 
             var destinationStream = currentStream;
 
-            if (!srcPage.Dictionary.TryGet(NameToken.Resources, srcPage.pdfScanner, out DictionaryToken srcResourceDictionary))
+            if (!srcPage.Dictionary.TryGet(NameToken.Resources, srcPage.pdfScanner, out DictionaryToken? srcResourceDictionary))
             {
                 // If the page doesn't have resources, then we copy the entire content stream, since not operation would collide 
                 // with the ones already written
@@ -857,7 +860,7 @@
 
             // Special cases
             // Since we don't directly add font's to the pages resources, we have to go look at the document's font
-            if (srcResourceDictionary.TryGet(NameToken.Font, srcPage.pdfScanner, out DictionaryToken fontsDictionary))
+            if (srcResourceDictionary.TryGet(NameToken.Font, srcPage.pdfScanner, out DictionaryToken? fontsDictionary))
             {
                 var pageFontsDictionary = resources.GetOrCreateDict(NameToken.Font);
 
@@ -902,7 +905,7 @@
             }
 
             // Since we don't directly add xobjects's to the pages resources, we have to go look at the document's xobjects
-            if (srcResourceDictionary.TryGet(NameToken.Xobject, srcPage.pdfScanner, out DictionaryToken xobjectsDictionary))
+            if (srcResourceDictionary.TryGet(NameToken.Xobject, srcPage.pdfScanner, out DictionaryToken? xobjectsDictionary))
             {
                 var pageXobjectsDictionary = resources.GetOrCreateDict(NameToken.Xobject);
 
@@ -944,7 +947,7 @@
             }
 
             // Since we don't directly add xobjects's to the pages resources, we have to go look at the document's xobjects
-            if (srcResourceDictionary.TryGet(NameToken.ExtGState, srcPage.pdfScanner, out DictionaryToken gsDictionary))
+            if (srcResourceDictionary.TryGet(NameToken.ExtGState, srcPage.pdfScanner, out DictionaryToken? gsDictionary))
             {
                 var pageGstateDictionary = resources.GetOrCreateDict(NameToken.ExtGState);
 
@@ -990,7 +993,7 @@
             return this;
         }
 
-        private List<Letter> DrawLetters(NameToken name, string text, IWritingFont font, TransformationMatrix fontMatrix, double fontSize, TransformationMatrix textMatrix)
+        private List<Letter> DrawLetters(NameToken? name, string text, IWritingFont font, TransformationMatrix fontMatrix, double fontSize, TransformationMatrix textMatrix)
         {
             var horizontalScaling = 1;
             var rise = 0;
@@ -1063,12 +1066,12 @@
         {
             if (value < 0)
             {
-                throw new ArgumentOutOfRangeException(argument, $"Provided decimal for RGB color was less than zero: {value}.");
+                throw new ArgumentOutOfRangeException(argument, $"Provided double for RGB color was less than zero: {value}.");
             }
 
             if (value > 1)
             {
-                throw new ArgumentOutOfRangeException(argument, $"Provided decimal for RGB color was greater than one: {value}.");
+                throw new ArgumentOutOfRangeException(argument, $"Provided double for RGB color was greater than one: {value}.");
             }
 
             return value;

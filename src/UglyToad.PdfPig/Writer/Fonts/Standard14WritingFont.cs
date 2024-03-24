@@ -38,7 +38,7 @@
                                    .Where(v => v.Value.CharacterCode == code)
                                    .Select(v => v.Value)
                                    .FirstOrDefault();
-            if (characterMetric == null)
+            if (characterMetric is null)
             {
                 Debug.WriteLine($"Font '{metrics.FontName}' does NOT have character '{character}' (0x{(int)character:X}).");
                 return false;
@@ -69,7 +69,7 @@
             return TransformationMatrix.FromValues(1 / 1000.0, 0, 0, 1 / 1000.0, 0, 0);
         }
 
-        public IndirectReferenceToken WriteFont(IPdfStreamWriter writer, IndirectReferenceToken reservedIndirect = null)
+        public IndirectReferenceToken WriteFont(IPdfStreamWriter writer, IndirectReferenceToken? reservedIndirect = null)
         {
             var encoding = NameToken.StandardEncoding;
             if (string.Equals(metrics.FontName, "Symbol", StringComparison.OrdinalIgnoreCase)
@@ -106,7 +106,7 @@
                                     .Where(v => v.Value.CharacterCode == characterCode)
                                     .Select(v => v.Value)
                                     .FirstOrDefault();
-            if (characterMetric == null)
+            if (characterMetric is null)
             {
                 throw new NotSupportedException($"Font '{metrics.FontName}' does NOT have character '{character}' (0x{(int)character:X}).");
             }

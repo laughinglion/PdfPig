@@ -1,12 +1,13 @@
 ﻿namespace UglyToad.PdfPig.PdfFonts.Parser
 {
     using System;
+    using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Linq;
     using Cmap;
     using Core;
     using Parts;
-    using System.Collections.Generic;
     using Tokenization.Scanner;
     using Tokens;
 
@@ -30,7 +31,7 @@
 
             var builder = new CharacterMapBuilder();
 
-            IToken previousToken = null;
+            IToken? previousToken = null;
             while (scanner.MoveNext())
             {
                 var token = scanner.CurrentToken;
@@ -124,7 +125,7 @@
             return builder.Build();
         }
 
-        public bool TryParseExternal(string name, out CMap result)
+        public bool TryParseExternal(string name, [NotNullWhen(true)] out CMap? result)
         {
             result = null;
 
@@ -133,7 +134,7 @@
             var resource = resources.FirstOrDefault(x =>
                 x.EndsWith("CMap." + name, StringComparison.InvariantCultureIgnoreCase));
 
-            if (resource == null)
+            if (resource is null)
             {
                 return false;
             }
@@ -141,7 +142,7 @@
             byte[] bytes;
             using (var stream = typeof(CMapParser).Assembly.GetManifestResourceStream(resource))
             {
-                if (stream == null)
+                if (stream is null)
                 {
                     return false;
                 }

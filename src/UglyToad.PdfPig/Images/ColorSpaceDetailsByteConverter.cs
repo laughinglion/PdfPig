@@ -1,11 +1,10 @@
 ﻿namespace UglyToad.PdfPig.Images
 {
+    using Content;
+    using Graphics.Colors;
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using Content;
-    using Core;
-    using Graphics.Colors;
 
     /// <summary>
     /// Utility for working with the bytes in <see cref="IPdfImage"/>s and converting according to their <see cref="ColorSpaceDetails"/>.s
@@ -20,12 +19,12 @@
         /// </summary>
         public static byte[] Convert(ColorSpaceDetails details, IReadOnlyList<byte> decoded, int bitsPerComponent, int imageWidth, int imageHeight)
         {
-            if (decoded == null)
+            if (decoded is null)
             {
-                return EmptyArray<byte>.Instance;
+                return [];
             }
 
-            if (details == null)
+            if (details is null)
             {
                 return decoded.ToArray();
             }

@@ -1,14 +1,9 @@
 ﻿namespace UglyToad.PdfPig.Tests.Graphics.Operations
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
     using System.Reflection;
     using PdfPig.Graphics.Operations;
     using PdfPig.Graphics.Operations.InlineImages;
     using PdfPig.Tokens;
-    using Xunit;
 
     public class GraphicsStateOperationTests
     {
@@ -99,10 +94,6 @@
                 {
                     result[i] = 0.5;
                 }
-                else if (type == typeof(decimal))
-                {
-                    result[i] = 0.5m;
-                }
                 else if (type == typeof(int))
                 {
                     result[i] = 1;
@@ -110,13 +101,6 @@
                 else if (type == typeof(double[]) || type == typeof(IReadOnlyList<double>))
                 {
                     result[i] = new double[]
-                    {
-                        1, 0, 0, 1, 2, 5
-                    };
-                }
-                else if (type == typeof(decimal[]) || type == typeof(IReadOnlyList<decimal>))
-                {
-                    result[i] = new decimal[]
                     {
                         1, 0, 0, 1, 2, 5
                     };

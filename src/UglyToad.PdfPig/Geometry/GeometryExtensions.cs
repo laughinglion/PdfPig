@@ -70,7 +70,7 @@
         /// </param>
         private static PdfRectangle ParametricPerpendicularProjection(IReadOnlyList<PdfPoint> polygon)
         {
-            if (polygon == null || polygon.Count == 0)
+            if (polygon is null || polygon.Count == 0)
             {
                 throw new ArgumentException("ParametricPerpendicularProjection(): polygon cannot be null and must contain at least one point.", nameof(polygon));
             }
@@ -169,7 +169,7 @@
                     if (A < Amin)
                     {
                         Amin = A;
-                        MBR = new[] { R0X, R0Y, R1X, R1Y, R2X, R2Y, R3X, R3Y };
+                        MBR = [R0X, R0Y, R1X, R1Y, R2X, R2Y, R3X, R3Y];
                     }
                 }
 
@@ -208,7 +208,7 @@
         /// <param name="points">The points.</param>
         public static PdfRectangle OrientedBoundingBox(IReadOnlyList<PdfPoint> points)
         {
-            if (points == null || points.Count < 2)
+            if (points is null || points.Count < 2)
             {
                 throw new ArgumentException("OrientedBoundingBox(): points cannot be null and must contain at least two points.", nameof(points));
             }
@@ -267,7 +267,7 @@
 
             if (points.Count() < 3) return points;
 
-            double polarAngle(PdfPoint point1, PdfPoint point2)
+            static double polarAngle(in PdfPoint point1, in PdfPoint point2)
             {
                 // This is used for grouping, we could use Math.Round()
                 return Math.Atan2(point2.Y - point1.Y, point2.X - point1.X) % Math.PI;
@@ -347,7 +347,7 @@
             }
             else
             {
-                double area(PdfPoint p1, PdfPoint p2, PdfPoint p3)
+                static double area(in PdfPoint p1, PdfPoint p2, PdfPoint p3)
                 {
                     return Math.Abs((p2.X * p1.Y - p1.X * p2.Y) + (p3.X * p2.Y - p2.X * p3.Y) + (p1.X * p3.Y - p3.X * p1.Y)) / 2.0;
                 }
@@ -741,12 +741,12 @@
         /// The intersection of the line formed by <paramref name="pl1"/> and <paramref name="pl2"/>
         /// intersects the rectangle.
         /// </summary>
-        private static PdfPoint[] Intersect(PdfRectangle rectangle, PdfPoint pl1, PdfPoint pl2)
+        private static PdfPoint[]? Intersect(PdfRectangle rectangle, PdfPoint pl1, PdfPoint pl2)
         {
             var clipper = new Clipper();
             clipper.AddPath(rectangle.ToClipperPolygon().ToList(), ClipperPolyType.Clip, true);
 
-            clipper.AddPath(new List<ClipperIntPoint>() { pl1.ToClipperIntPoint(), pl2.ToClipperIntPoint() }, ClipperPolyType.Subject, false);
+            clipper.AddPath([pl1.ToClipperIntPoint(), pl2.ToClipperIntPoint()], ClipperPolyType.Subject, false);
 
             var solutions = new ClipperPolyTree();
             if (clipper.Execute(ClipperClipType.Intersection, solutions))
@@ -759,11 +759,11 @@
                 {
                     var solution = solutions.Children[0];
 
-                    return new[]
-                    {
+                    return
+                    [
                         new PdfPoint(solution.Contour[0].X / ClippingExtensions.Factor, solution.Contour[0].Y / ClippingExtensions.Factor),
                         new PdfPoint(solution.Contour[1].X / ClippingExtensions.Factor, solution.Contour[1].Y / ClippingExtensions.Factor)
-                    };
+                    ];
                 }
                 else
                 {
@@ -881,12 +881,12 @@
         private static PdfPoint[] Intersect(BezierCurve bezierCurve, PdfPoint p1, PdfPoint p2)
         {
             var ts = IntersectT(bezierCurve, p1, p2);
-            if (ts == null || ts.Length == 0) return EmptyArray<PdfPoint>.Instance;
+            if (ts is null || ts.Length == 0) return [];
 
             List<PdfPoint> points = new List<PdfPoint>();
             foreach (var t in ts)
             {
-                PdfPoint point = new PdfPoint(
+                var point = new PdfPoint(
                     BezierCurve.ValueWithT(bezierCurve.StartPoint.X,
                                            bezierCurve.FirstControlPoint.X,
                                            bezierCurve.SecondControlPoint.X,
@@ -906,7 +906,7 @@
         /// Get the t values that are the intersections of the line and the curve.
         /// </summary>
         /// <returns>List of t values where the <see cref="BezierCurve"/> and the <see cref="PdfLine"/> intersect.</returns>
-        public static double[] IntersectT(this BezierCurve bezierCurve, PdfLine line)
+        public static double[]? IntersectT(this BezierCurve bezierCurve, PdfLine line)
         {
             return IntersectT(bezierCurve, line.Point1, line.Point2);
         }
@@ -915,12 +915,12 @@
         /// Get the t values that are the intersections of the line and the curve.
         /// </summary>
         /// <returns>List of t values where the <see cref="BezierCurve"/> and the <see cref="Line"/> intersect.</returns>
-        public static double[] IntersectT(this BezierCurve bezierCurve, Line line)
+        public static double[]? IntersectT(this BezierCurve bezierCurve, Line line)
         {
             return IntersectT(bezierCurve, line.From, line.To);
         }
 
-        private static double[] IntersectT(BezierCurve bezierCurve, PdfPoint p1, PdfPoint p2)
+        private static double[]? IntersectT(BezierCurve bezierCurve, PdfPoint p1, PdfPoint p2)
         {
             // if the bounding boxes do not intersect, they cannot intersect
             var bezierBbox = bezierCurve.GetBoundingRectangle();
@@ -1247,9 +1247,9 @@
                     double OneOverTwiceB = 1 / (2.0 * b);
                     double x = (-c + sqrtDetQ) * OneOverTwiceB;
                     double x0 = (-c - sqrtDetQ) * OneOverTwiceB;
-                    return new double[] { x, x0 };
+                    return [x, x0];
                 }
-                return EmptyArray<double>.Instance; // no real roots
+                return []; // no real roots
             }
 
             double aSquared = a * a;
@@ -1298,7 +1298,7 @@
                 x3 = vietTrigonometricSolution(p, q, 2) - bOver3a;
             }
 
-            return new[] {x1, x2, x3};
+            return [x1, x2, x3];
         }
 
         internal static string ToSvg(this PdfSubpath p, double height)

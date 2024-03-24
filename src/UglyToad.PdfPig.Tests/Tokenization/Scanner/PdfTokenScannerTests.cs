@@ -1,14 +1,10 @@
 ﻿namespace UglyToad.PdfPig.Tests.Tokenization.Scanner
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Text;
     using PdfPig.Core;
     using PdfPig.Encryption;
     using PdfPig.Tokenization.Scanner;
     using PdfPig.Tokens;
-    using Xunit;
 
     public class PdfTokenScannerTests
     {
@@ -499,7 +495,7 @@ endobj";
             var input = StringBytesTestConverter.Convert(s, false);
 
             return new PdfTokenScanner(input.Bytes, locationProvider ?? new TestObjectLocationProvider(),
-                new TestFilterProvider(), NoOpEncryptionHandler.Instance);
+                new TestFilterProvider(), NoOpEncryptionHandler.Instance, ParsingOptions.LenientParsingOff);
         }
 
         private static IReadOnlyList<ObjectToken> ReadToEnd(PdfTokenScanner scanner)

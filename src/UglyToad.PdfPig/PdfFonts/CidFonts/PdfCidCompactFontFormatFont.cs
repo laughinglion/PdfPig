@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using Core;
     using Fonts;
     using Fonts.CompactFontFormat;
@@ -18,28 +19,22 @@
             Details = GetDetails(fontCollection?.FirstFont);
         }
 
-        private static FontDetails GetDetails(CompactFontFormatFont font)
+        private static FontDetails GetDetails(CompactFontFormatFont? font)
         {
-            if (font == null)
+            if (font is null)
             {
                 return FontDetails.GetDefault();
             }
 
-            FontDetails WithWeightValues(bool isbold, int weight) => new FontDetails(null, isbold, weight, font.ItalicAngle != 0);
+            FontDetails WithWeightValues(bool isBold, int weight) => new FontDetails(null, isBold, weight, font.ItalicAngle != 0);
 
-            switch (font.Weight?.ToLowerInvariant())
-            {
-                case "light":
-                    return WithWeightValues(false, 300);
-                case "semibold":
-                    return WithWeightValues(true, 600);
-                case "bold":
-                    return WithWeightValues(true, FontDetails.BoldWeight);
-                case "black":
-                    return WithWeightValues(true, 900);
-                default:
-                    return WithWeightValues(false, FontDetails.DefaultWeight);
-            }
+            return (font.Weight?.ToLowerInvariant()) switch {
+                "light"    => WithWeightValues(false, 300),
+                "semibold" => WithWeightValues(true, 600),
+                "bold"     => WithWeightValues(true, FontDetails.BoldWeight),
+                "black"    => WithWeightValues(true, 900),
+                _          => WithWeightValues(false, FontDetails.DefaultWeight)
+            };
         }
 
         public TransformationMatrix GetFontTransformationMatrix() => fontCollection.GetFirstTransformationMatrix();
@@ -84,11 +79,11 @@
             return 1000;
         }
 
-        public bool TryGetFontMatrix(int characterCode, out TransformationMatrix? matrix)
+        public bool TryGetFontMatrix(int characterCode, [NotNullWhen(true)] out TransformationMatrix? matrix)
         {
             var font = GetFont();
             var name = font.GetCharacterName(characterCode, true);
-            if (name == null)
+            if (name is null)
             {
                 matrix = null;
                 return false;
@@ -118,7 +113,7 @@
             return fontCollection.FirstFont;
         }
 
-        public bool TryGetPath(int characterCode, out IReadOnlyList<PdfSubpath> path)
+        public bool TryGetPath(int characterCode, [NotNullWhen(true)] out IReadOnlyList<PdfSubpath>? path)
         {
             path = null;
 

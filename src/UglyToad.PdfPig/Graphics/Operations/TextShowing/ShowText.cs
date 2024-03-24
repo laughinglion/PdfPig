@@ -1,8 +1,7 @@
 ﻿namespace UglyToad.PdfPig.Graphics.Operations.TextShowing
 {
-    using System.IO;
     using PdfPig.Core;
-    using Util.JetBrains.Annotations;
+    using System.IO;
 
     /// <inheritdoc />
     /// <summary>
@@ -34,14 +33,12 @@
         /// <summary>
         /// The text string to show.
         /// </summary>
-        [CanBeNull]
-        public string Text { get; }
+        public string? Text { get; }
 
         /// <summary>
         /// The bytes of the string to show.
         /// </summary>
-        [CanBeNull]
-        public byte[] Bytes { get; }
+        public byte[]? Bytes { get; }
 
         /// <summary>
         /// Create a new <see cref="ShowText"/>.
@@ -67,25 +64,22 @@
             operationContext.ShowText(input);
         }
 
-        private string EscapeText(string text)
+        string? EscapeText(string? text)
         {
-            if (text is null)
-            {
-                return null;
-            }
+            if (text is null) return null;
             // Fix Issue 350 from PDF Spec 1.7 (page 408) on handling 'special characters' of '(', ')' and '\'.
 
             // The strings must conform to the syntax for string objects.
             // When a string is written by enclosing the data in parentheses,
-            // bytes whose values are the same as those
+            // bytes whose values are the same as those 
             // of the ASCII characters left parenthesis (40), right parenthesis (41), and backslash (92)
             // must be preceded by a backslash character.
             // All other byte values between 0 and 255 may be used in a string object.
             // These rules apply to each individual byte in a string object, whether the string is interpreted by the text-showing operators
-            // as single-byte or multiple-byte character codes.
+            // as single-byte or multiple-byte character codes. 
 
             // Note: order of replacing is important. Replace slash first before brackets.
-            text = text.Replace(@"\", @"\\)");  // Escape any slash          '\'  -> '\\'
+            text = text.Replace(@"\", @"\\");  // Escape any slash          '\'  -> '\\'
             text = text.Replace("(", @"\(");    // Escape any open  brackets '('  -> '\('
             text = text.Replace(")", @"\)");    // Escape any close brackets ')'  -> '\)'
 
@@ -95,6 +89,7 @@
         /// <inheritdoc />
         public void Write(Stream stream)
         {
+             
             if (Bytes != null)
             {
                 stream.WriteHex(Bytes);

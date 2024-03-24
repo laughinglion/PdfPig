@@ -2,7 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
+    using System.Diagnostics.CodeAnalysis;
     using Core;
     using Graphics;
     using Graphics.Operations;
@@ -12,7 +12,7 @@
     using Tokenization.Scanner;
     using Tokens;
 
-    internal class PageContentParser : IPageContentParser
+    internal sealed class PageContentParser : IPageContentParser
     {
         private readonly IGraphicsStateOperationFactory operationFactory;
         private readonly bool useLenientParsing;
@@ -28,7 +28,7 @@
             IInputBytes inputBytes,
             ILog log)
         {
-            var scanner = new CoreTokenScanner(inputBytes, false);
+            var scanner = new CoreTokenScanner(inputBytes, false, useLenientParsing: useLenientParsing);
 
             var precedingTokens = new List<IToken>();
             var graphicsStateOperations = new List<IGraphicsStateOperation>();
@@ -69,11 +69,11 @@
                     if (op.Data == "EI")
                     {
                         // Check an end image operation was the last thing that happened.
-                        IGraphicsStateOperation lastOperation = graphicsStateOperations.Count > 0
+                        IGraphicsStateOperation? lastOperation = graphicsStateOperations.Count > 0
                             ? graphicsStateOperations[graphicsStateOperations.Count - 1]
                             : null;
 
-                        if (lastEndImageOffset == null || lastOperation == null || !(lastOperation is EndInlineImage lastEndImage))
+                        if (lastEndImageOffset is null || lastOperation is null || !(lastOperation is EndInlineImage lastEndImage))
                         {
                             throw new PdfDocumentFormatException("Encountered End Image token outside an inline image on " +
                                                                  $"page {pageNumber} at offset in content: {scanner.CurrentPosition}.");
@@ -101,7 +101,7 @@
 
                             // Replace the last end image operator with one containing the full set of data.
                             graphicsStateOperations.Remove(lastEndImage);
-                            graphicsStateOperations.Add(new EndInlineImage(lastEndImage.ImageData.Concat(missingData).ToArray()));
+                            graphicsStateOperations.Add(new EndInlineImage([.. lastEndImage.ImageData, .. missingData]));
                         }
 
                         lastEndImageOffset = actualEndImageOffset;
@@ -110,7 +110,7 @@
                     }
                     else
                     {
-                        IGraphicsStateOperation operation;
+                        IGraphicsStateOperation? operation;
                         try
                         {
                             operation = operationFactory.Create(op, precedingTokens);
@@ -143,7 +143,7 @@
 
                                 var nextByteSet = scanner.RecoverFromIncorrectEndImage(lastEndImageOffset.Value);
                                 graphicsStateOperations.RemoveRange(index, graphicsStateOperations.Count - index);
-                                var newEndInlineImage = new EndInlineImage(prevEndInlineImage.ImageData.Concat(nextByteSet).ToList());
+                                var newEndInlineImage = new EndInlineImage([.. prevEndInlineImage.ImageData, .. nextByteSet]);
                                 graphicsStateOperations.Add(newEndInlineImage);
                                 lastEndImageOffset = scanner.CurrentPosition - 3;
                             }
@@ -175,7 +175,7 @@
             return graphicsStateOperations;
         }
 
-        private static bool TryGetLastEndImage(List<IGraphicsStateOperation> graphicsStateOperations, out EndInlineImage endImage, out int index)
+        private static bool TryGetLastEndImage(List<IGraphicsStateOperation> graphicsStateOperations, [NotNullWhen(true)] out EndInlineImage? endImage, out int index)
         {
             index = -1;
             endImage = null;
@@ -196,7 +196,7 @@
                     return true;
                 }
 
-                if (last is EndText || last is BeginInlineImageData)
+                if (last is EndText or BeginInlineImageData)
                 {
                     break;
                 }

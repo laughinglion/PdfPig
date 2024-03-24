@@ -3,14 +3,13 @@
     using System;
     using System.IO;
     using IO;
-    using Util;
 
     /// <summary>
     /// CCITT Modified Huffman RLE, Group 3 (T4) and Group 4 (T6) fax compression.
     ///
     /// Ported from https://github.com/apache/pdfbox/blob/e644c29279e276bde14ce7a33bdeef0cb1001b3e/pdfbox/src/main/java/org/apache/pdfbox/filter/CCITTFaxDecoderStream.java
     /// </summary>
-    internal class CcittFaxDecoderStream : StreamWrapper
+    internal sealed class CcittFaxDecoderStream : StreamWrapper
     {
         // See TIFF 6.0 Specification, Section 10: "Modified Huffman Compression", page 43.
 
@@ -115,7 +114,7 @@
                 {
                     node = node.Walk(ReadBit());
 
-                    if (node == null)
+                    if (node is null)
                     {
                         goto mode;
                     }
@@ -224,7 +223,7 @@
                 {
                     node = node.Walk(ReadBit());
 
-                    if (node == null)
+                    if (node is null)
                     {
                         goto eof;
                     }
@@ -347,7 +346,7 @@
                 var bit = ReadBit();
                 node = node.Walk(bit);
 
-                if (node == null)
+                if (node is null)
                 {
                     throw new InvalidOperationException("Unknown code in Huffman RLE stream");
                 }
@@ -426,7 +425,7 @@
         {
             if (decodedLength < 0)
             {
-                ArrayHelper.Fill(b, off, off + len, (byte)0x0);
+                b.AsSpan(off, len).Fill(0x0);
                 return len;
             }
 
@@ -436,7 +435,7 @@
 
                 if (decodedLength < 0)
                 {
-                    ArrayHelper.Fill(b, off, off + len, (byte)0x0);
+                    b.AsSpan(off, len).Fill(0x0);
                     return len;
                 }
             }
@@ -450,8 +449,8 @@
 
         private class Node
         {
-            public Node Left { get; set; }
-            public Node Right { get; set; }
+            public Node? Left { get; set; }
+            public Node? Right { get; set; }
 
             public int Value { get; set; }
 
@@ -472,7 +471,7 @@
 
             public Node Walk(bool next)
             {
-                return next ? Right : Left;
+                return next ? Right! : Left!;
             }
 
             public override string ToString()
@@ -495,7 +494,7 @@
                     var isSet = ((path >> bitPos) & 1) == 1;
                     var next = current.Walk(isSet);
 
-                    if (next == null)
+                    if (next is null)
                     {
                         next = new Node();
 
@@ -531,7 +530,7 @@
                     var isSet = ((path >> bitPos) & 1) == 1;
                     var next = current.Walk(isSet);
 
-                    if (next == null)
+                    if (next is null)
                     {
                         if (i == depth - 1)
                         {

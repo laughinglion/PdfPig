@@ -3,21 +3,19 @@
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.IO;
+    using System.Linq;
     using System.Text.RegularExpressions;
     using Core;
     using Encryption;
     using Filters;
-    using System.Linq;
     using Tokens;
 
     internal class PdfTokenScanner : IPdfTokenScanner
     {
-        private static readonly byte[] EndstreamBytes =
-        {
-            (byte)'e', (byte)'n', (byte)'d', (byte)'s', (byte)'t', (byte)'r', (byte)'e', (byte)'a', (byte)'m'
-        };
+        private static ReadOnlySpan<byte> EndstreamBytes => "endstream"u8;
 
         private static readonly Regex EndsWithNumberRegex = new Regex(@"(?<=^[^\s\d]+)\d+$");
 
@@ -25,6 +23,7 @@
         private readonly IObjectLocationProvider objectLocationProvider;
         private readonly ILookupFilterProvider filterProvider;
         private readonly CoreTokenScanner coreTokenScanner;
+        private readonly ParsingOptions parsingOptions;
 
         private IEncryptionHandler encryptionHandler;
         private bool isDisposed;
@@ -37,13 +36,13 @@
         /// Stores tokens encountered between obj - endobj markers for each <see cref="MoveNext"/> call.
         /// Cleared after each operation.
         /// </summary>
-        private readonly List<IToken> readTokens = new List<IToken>();
+        private readonly List<IToken> readTokens = [];
 
         // Store the previous 3 tokens and their positions so we can backtrack to find object numbers and stream dictionaries.
         private readonly long[] previousTokenPositions = new long[3];
         private readonly IToken[] previousTokens = new IToken[3];
 
-        public IToken CurrentToken { get; private set; }
+        public IToken? CurrentToken { get; private set; }
 
         private IndirectReference? callingObject;
 
@@ -51,14 +50,19 @@
 
         public long Length => coreTokenScanner.Length;
 
-        public PdfTokenScanner(IInputBytes inputBytes, IObjectLocationProvider objectLocationProvider, ILookupFilterProvider filterProvider,
-            IEncryptionHandler encryptionHandler)
+        public PdfTokenScanner(
+            IInputBytes inputBytes,
+            IObjectLocationProvider objectLocationProvider,
+            ILookupFilterProvider filterProvider,
+            IEncryptionHandler encryptionHandler,
+            ParsingOptions parsingOptions)
         {
             this.inputBytes = inputBytes;
             this.objectLocationProvider = objectLocationProvider;
             this.filterProvider = filterProvider;
             this.encryptionHandler = encryptionHandler;
-            coreTokenScanner = new CoreTokenScanner(inputBytes, true);
+            this.parsingOptions = parsingOptions;
+            coreTokenScanner = new CoreTokenScanner(inputBytes, true, useLenientParsing: parsingOptions.UseLenientParsing);
         }
 
         public void UpdateEncryptionHandler(IEncryptionHandler newHandler)
@@ -258,14 +262,14 @@
             return true;
         }
 
-        private bool TryReadStream(long startStreamTokenOffset, bool getLength, out StreamToken stream)
+        private bool TryReadStream(long startStreamTokenOffset, bool getLength, [NotNullWhen(true)] out StreamToken? stream)
         {
             stream = null;
 
             DictionaryToken streamDictionaryToken = GetStreamDictionary();
 
             // Get the expected length from the stream dictionary if present.
-            long? length = getLength ? GetStreamLength(streamDictionaryToken) : default(long?);
+            long? length = getLength ? GetStreamLength(streamDictionaryToken) : default;
 
             if (!getLength && streamDictionaryToken.TryGet(NameToken.Length, out NumericToken inlineLengthToken))
             {
@@ -474,7 +478,7 @@
             return true;
         }
 
-        private static bool TryReadUsingLength(IInputBytes inputBytes, long? length, long startDataOffset, out byte[] data)
+        private static bool TryReadUsingLength(IInputBytes inputBytes, long? length, long startDataOffset, [NotNullWhen(true)] out byte[]? data)
         {
             data = null;
 
@@ -611,7 +615,7 @@
                     // Keep a copy of the read tokens here since this list must be empty prior to move next.
                     var oldData = new List<IToken>(readTokens);
                     readTokens.Clear();
-                    if (MoveNext() && ((ObjectToken)CurrentToken).Data is NumericToken lengthToken)
+                    if (MoveNext() && ((ObjectToken)CurrentToken!).Data is NumericToken lengthToken)
                     {
                         length = lengthToken.Long;
                     }
@@ -685,6 +689,8 @@
             coreTokenScanner.DeregisterCustomTokenizer(tokenizer);
         }
 
+#nullable disable
+
         public ObjectToken Get(IndirectReference reference)
         {
             if (isDisposed)
@@ -727,7 +733,7 @@
                 return BruteForceFileToFindReference(reference);
             }
 
-            var found = (ObjectToken)CurrentToken;
+            var found = (ObjectToken)CurrentToken!;
 
             if (found.Number.Equals(reference))
             {
@@ -736,6 +742,8 @@
 
             return BruteForceFileToFindReference(reference);
         }
+
+#nullable enable
 
         public void ReplaceToken(IndirectReference reference, IToken token)
         {
@@ -755,7 +763,7 @@
 
                 while (MoveNext())
                 {
-                    objectLocationProvider.Cache((ObjectToken)CurrentToken, true);
+                    objectLocationProvider.Cache((ObjectToken)CurrentToken!, true);
                 }
 
                 if (!objectLocationProvider.TryGetCached(reference, out var objectToken))
@@ -780,7 +788,7 @@
             if (!(streamObject.Data is StreamToken stream))
             {
                 throw new PdfDocumentFormatException("Requested a stream object by reference but the requested stream object " +
-                                                     $"was not a stream: {reference}, {streamObject.Data}.");
+                                                     $"was not a stream: {reference}, {streamObject?.Data}.");
             }
 
             var objects = ParseObjectStream(stream, offset);
@@ -815,7 +823,7 @@
             // Read the N integers
             var bytes = new ByteArrayInputBytes(stream.Decode(filterProvider, this));
 
-            var scanner = new CoreTokenScanner(bytes, true);
+            var scanner = new CoreTokenScanner(bytes, true, useLenientParsing: parsingOptions.UseLenientParsing);
 
             var objects = new List<Tuple<long, long>>();
 

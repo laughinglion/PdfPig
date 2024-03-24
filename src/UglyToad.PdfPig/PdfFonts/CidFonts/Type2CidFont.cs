@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using Core;
     using Geometry;
@@ -14,7 +15,7 @@
     /// </summary>
     internal sealed class Type2CidFont : ICidFont
     {
-        private readonly ICidFontProgram fontProgram;
+        private readonly ICidFontProgram? fontProgram;
         private readonly VerticalWritingMetrics verticalWritingMetrics;
         private readonly IReadOnlyDictionary<int, double> widths;
         private readonly double? defaultWidth;
@@ -37,12 +38,13 @@
         public FontDetails Details => fontProgram?.Details ?? Descriptor?.ToDetails(BaseFont?.Data)
             ?? FontDetails.GetDefault(BaseFont?.Data);
 
-        public Type2CidFont(NameToken type,
+        public Type2CidFont(
+            NameToken type,
             NameToken subType,
             NameToken baseFont,
             CharacterIdentifierSystemInfo systemInfo,
             FontDescriptor descriptor,
-            ICidFontProgram fontProgram,
+            ICidFontProgram? fontProgram,
             VerticalWritingMetrics verticalWritingMetrics,
             IReadOnlyDictionary<int, double> widths,
             double? defaultWidth,
@@ -66,7 +68,7 @@
 
         public double GetWidthFromFont(int characterIdentifier)
         {
-            if (fontProgram == null)
+            if (fontProgram is null)
             {
                 return GetWidthFromDictionary(characterIdentifier);
             }
@@ -97,7 +99,7 @@
 
         public PdfRectangle GetBoundingBox(int characterIdentifier)
         {
-            if (fontProgram == null)
+            if (fontProgram is null)
             {
                 return Descriptor.BoundingBox;
             }
@@ -127,12 +129,12 @@
             return FontMatrix;
         }
 
-        public bool TryGetPath(int characterCode, out IReadOnlyList<PdfSubpath> path) => TryGetPath(characterCode, cidToGid.GetGlyphIndex, out path);
+        public bool TryGetPath(int characterCode, [NotNullWhen(true)] out IReadOnlyList<PdfSubpath>? path) => TryGetPath(characterCode, cidToGid.GetGlyphIndex, out path);
 
-        public bool TryGetPath(int characterCode, Func<int, int?> characterCodeToGlyphId, out IReadOnlyList<PdfSubpath> path)
+        public bool TryGetPath(int characterCode, Func<int, int?> characterCodeToGlyphId, [NotNullWhen(true)] out IReadOnlyList<PdfSubpath>? path)
         {
             path = null;
-            if (fontProgram == null)
+            if (fontProgram is null)
             {
                 return false;
             }
@@ -140,15 +142,15 @@
             return fontProgram.TryGetPath(characterCode, characterCodeToGlyphId, out path);
         }
 
-        public bool TryGetNormalisedPath(int characterCode, out IReadOnlyList<PdfSubpath> path)
+        public bool TryGetNormalisedPath(int characterCode, [NotNullWhen(true)] out IReadOnlyList<PdfSubpath>? path)
         {
             return TryGetNormalisedPath(characterCode, cidToGid.GetGlyphIndex, out path);
         }
 
-        public bool TryGetNormalisedPath(int characterCode, Func<int, int?> characterCodeToGlyphId, out IReadOnlyList<PdfSubpath> path)
+        public bool TryGetNormalisedPath(int characterCode, Func<int, int?> characterCodeToGlyphId, [NotNullWhen(true)] out IReadOnlyList<PdfSubpath>? path)
         {
             path = null;
-            if (fontProgram == null)
+            if (fontProgram is null)
             {
                 return false;
             }

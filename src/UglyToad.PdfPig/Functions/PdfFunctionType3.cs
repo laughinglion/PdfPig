@@ -17,10 +17,10 @@
         /// <summary>
         /// Stitching function
         /// </summary>
-        internal PdfFunctionType3(DictionaryToken function, ArrayToken domain, ArrayToken range, IReadOnlyList<PdfFunction> functionsArray, ArrayToken bounds, ArrayToken encode)
+        internal PdfFunctionType3(DictionaryToken function, ArrayToken domain, ArrayToken? range, IReadOnlyList<PdfFunction> functionsArray, ArrayToken bounds, ArrayToken encode)
             : base(function, domain, range)
         {
-            if (functionsArray == null || functionsArray.Count == 0)
+            if (functionsArray is null || functionsArray.Count == 0)
             {
                 throw new ArgumentNullException(nameof(functionsArray));
             }
@@ -36,7 +36,7 @@
         internal PdfFunctionType3(StreamToken function, ArrayToken domain, ArrayToken range, IReadOnlyList<PdfFunction> functionsArray, ArrayToken bounds, ArrayToken encode)
             : base(function, domain, range)
         {
-            if (functionsArray == null || functionsArray.Count == 0)
+            if (functionsArray is null || functionsArray.Count == 0)
             {
                 throw new ArgumentNullException(nameof(functionsArray));
             }
@@ -59,7 +59,7 @@
             // This function is known as a "stitching" function. Based on the input, it decides which child function to call.
             // All functions in the array are 1-value-input functions
             // See PDF Reference section 3.9.3.
-            PdfFunction function = null;
+            PdfFunction? function = null;
             double x = input[0];
             PdfRange domain = GetDomainForInput(0);
             // clip input value to domain
@@ -77,7 +77,7 @@
                 int boundsSize = boundsValues.Length;
                 // create a combined array containing the domain and the bounds values
                 // domain.min, bounds[0], bounds[1], ...., bounds[boundsSize-1], domain.max
-                double[] partitionValues = new double[boundsSize + 2];
+                var partitionValues = new double[boundsSize + 2];
                 int partitionValuesSize = partitionValues.Length;
                 partitionValues[0] = domain.Min;
                 partitionValues[partitionValuesSize - 1] = domain.Max;
@@ -95,11 +95,11 @@
                     }
                 }
             }
-            if (function == null)
+            if (function is null)
             {
                 throw new IOException("partition not found in type 3 function");
             }
-            double[] functionValues = new double[] { x };
+            var functionValues = new double[] { x };
             // calculate the output values using the chosen function
             double[] functionResult = function.Eval(functionValues);
             // clip to range if available

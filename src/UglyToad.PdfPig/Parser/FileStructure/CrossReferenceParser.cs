@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using Core;
     using CrossReference;
     using Logging;
@@ -77,7 +78,7 @@
 
                     DictionaryToken tableDictionary = tablePart.Dictionary;
 
-                    CrossReferenceTablePart streamPart = null;
+                    CrossReferenceTablePart? streamPart = null;
 
                     // check for a XRef stream, it may contain some object ids of compressed objects 
                     if (tableDictionary.ContainsKey(NameToken.XrefStm))
@@ -252,7 +253,7 @@
             long objByteOffset,
             IPdfTokenScanner pdfScanner,
             long? fromTableAtOffset,
-            out CrossReferenceTablePart xrefTablePart)
+            [NotNullWhen(true)] out CrossReferenceTablePart? xrefTablePart)
         {
             xrefTablePart = null;
 
@@ -262,7 +263,7 @@
 
             var streamObjectToken = (ObjectToken)pdfScanner.CurrentToken;
 
-            if (streamObjectToken == null || !(streamObjectToken.Data is StreamToken objectStream))
+            if (streamObjectToken is null || !(streamObjectToken.Data is StreamToken objectStream))
             {
                 log.Error($"When reading a cross reference stream object found a non-stream object: {streamObjectToken?.Data}");
 

@@ -66,7 +66,7 @@
         public TPage Create(int number, DictionaryToken dictionary, PageTreeMembers pageTreeMembers,
              NamedDestinations namedDestinations)
         {
-            if (dictionary == null)
+            if (dictionary is null)
             {
                 throw new ArgumentNullException(nameof(dictionary));
             }
@@ -79,7 +79,7 @@
             }
 
             var rotation = new PageRotationDegrees(pageTreeMembers.Rotation);
-            if (dictionary.TryGet(NameToken.Rotate, PdfScanner, out NumericToken rotateToken))
+            if (dictionary.TryGet(NameToken.Rotate, PdfScanner, out NumericToken? rotateToken))
             {
                 rotation = new PageRotationDegrees(rotateToken.Int);
             }
@@ -94,7 +94,7 @@
                 stackDepth++;
             }
 
-            if (dictionary.TryGet(NameToken.Resources, PdfScanner, out DictionaryToken resources))
+            if (dictionary.TryGet(NameToken.Resources, PdfScanner, out DictionaryToken? resources))
             {
                 ResourceStore.LoadResourceDictionary(resources);
                 stackDepth++;
@@ -131,7 +131,7 @@
 
                     var contentStream = DirectObjectFinder.Get<StreamToken>(obj, PdfScanner);
 
-                    if (contentStream == null)
+                    if (contentStream is null)
                     {
                         throw new InvalidOperationException($"Could not find the contents for object {obj}.");
                     }
@@ -150,7 +150,7 @@
             {
                 var contentStream = DirectObjectFinder.Get<StreamToken>(contents, PdfScanner);
 
-                if (contentStream == null)
+                if (contentStream is null)
                 {
                     throw new InvalidOperationException("Failed to parse the content for the page: " + number);
                 }
@@ -177,13 +177,13 @@
             UserSpaceUnit userSpaceUnit,
             PageRotationDegrees rotation,
             TransformationMatrix initialMatrix,
-            IReadOnlyList<byte> contentBytes)
+            IReadOnlyList<byte>? contentBytes)
         {
             IReadOnlyList<IGraphicsStateOperation> operations;
 
-            if (contentBytes == null || contentBytes.Count == 0)
+            if (contentBytes is null || contentBytes.Count == 0)
             {
-                operations = EmptyArray<IGraphicsStateOperation>.Instance;
+                operations = Array.Empty<IGraphicsStateOperation>();
             }
             else
             {
@@ -192,7 +192,8 @@
                     ParsingOptions.Logger);
             }
 
-            return ProcessPage(pageNumber,
+            return ProcessPage(
+                pageNumber,
                 dictionary,
                 namedDestinations,
                 mediaBox,
@@ -246,7 +247,7 @@
         {
             CropBox cropBox;
             if (dictionary.TryGet(NameToken.CropBox, out var cropBoxObject) &&
-                DirectObjectFinder.TryGet(cropBoxObject, PdfScanner, out ArrayToken cropBoxArray))
+                DirectObjectFinder.TryGet(cropBoxObject, PdfScanner, out ArrayToken? cropBoxArray))
             {
                 if (cropBoxArray.Length != 4)
                 {
@@ -275,7 +276,7 @@
         {
             MediaBox mediaBox;
             if (dictionary.TryGet(NameToken.MediaBox, out var mediaBoxObject)
-                && DirectObjectFinder.TryGet(mediaBoxObject, PdfScanner, out ArrayToken mediaBoxArray))
+                && DirectObjectFinder.TryGet(mediaBoxObject, PdfScanner, out ArrayToken? mediaBoxArray))
             {
                 if (mediaBoxArray.Length != 4)
                 {
@@ -293,7 +294,7 @@
             {
                 mediaBox = pageTreeMembers.MediaBox;
 
-                if (mediaBox == null)
+                if (mediaBox is null)
                 {
                     ParsingOptions.Logger.Error(
                         $"The MediaBox was the wrong missing for page {number}. Using US Letter.");

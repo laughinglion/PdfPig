@@ -1,13 +1,13 @@
 ﻿namespace UglyToad.PdfPig.Util
 {
-    using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
 
     internal static class Diacritics
     {
-        private static readonly HashSet<string> NonCombiningDiacritics = new HashSet<string>
-        {
+        private static readonly HashSet<string> NonCombiningDiacritics =
+        [
             "´",
             "^",
             "ˆ",
@@ -19,7 +19,7 @@
             "˜",
             "∼",
             "¸"
-        };
+        ];
 
         public static bool IsPotentialStandaloneDiacritic(string value) => NonCombiningDiacritics.Contains(value);
 
@@ -40,11 +40,11 @@
             return false;
         }
 
-        public static bool TryCombineDiacriticWithPreviousLetter(string diacritic, string previous, out string result)
+        public static bool TryCombineDiacriticWithPreviousLetter(string diacritic, string previous, [NotNullWhen(true)] out string? result)
         {
             result = null;
 
-            if (previous == null)
+            if (previous is null)
             {
                 return false;
             }

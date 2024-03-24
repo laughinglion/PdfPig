@@ -1,5 +1,10 @@
 ﻿namespace UglyToad.PdfPig.Graphics
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Linq;
+
     using Colors;
     using Content;
     using Core;
@@ -10,10 +15,6 @@
     using Parser;
     using PdfFonts;
     using PdfPig.Core;
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.Linq;
     using Tokenization.Scanner;
     using Tokens;
     using XObjects;
@@ -67,12 +68,12 @@
         /// <summary>
         /// The active ExtendedGraphicsState font.
         /// </summary>
-        protected IFont ActiveExtendedGraphicsStateFont;
+        protected IFont? ActiveExtendedGraphicsStateFont;
 
         /// <summary>
         /// Inline image builder.
         /// </summary>
-        protected InlineImageBuilder InlineImageBuilder;
+        protected InlineImageBuilder? InlineImageBuilder;
 
         /// <summary>
         /// The page number.
@@ -213,7 +214,7 @@
                 ? ActiveExtendedGraphicsStateFont
                 : ResourceStore.GetFont(currentState.FontState.FontName);
 
-            if (font == null)
+            if (font is null)
             {
                 if (ParsingOptions.SkipMissingFonts)
                 {
@@ -248,7 +249,7 @@
 
                 var foundUnicode = font.TryGetUnicode(code, out var unicode);
 
-                if (!foundUnicode || unicode == null)
+                if (!foundUnicode || unicode is null)
                 {
                     ParsingOptions.Logger.Warn(
                         $"We could not find the corresponding character with code {code} in font {font.Name}.");
@@ -281,8 +282,8 @@
                 var boundingBox = font.GetBoundingBox(code);
 
                 RenderGlyph(font,
-                    currentState.CurrentStrokingColor,
-                    currentState.CurrentNonStrokingColor,
+                    currentState.CurrentStrokingColor!,
+                    currentState.CurrentNonStrokingColor!,
                     currentState.FontState.TextRenderingMode,
                     fontSize,
                     pointSize,
@@ -336,17 +337,17 @@
 
             var currentState = GetCurrentState();
 
-            var textState = currentState.FontState;
+            var textState = currentState.FontState!;
 
             var fontSize = textState.FontSize;
             var horizontalScaling = textState.HorizontalScaling / 100.0;
             var font = ResourceStore.GetFont(textState.FontName);
 
-            if (font == null)
+            if (font is null)
             {
                 if (ParsingOptions.SkipMissingFonts)
                 {
-                    ParsingOptions.Logger.Warn($"Skipping a missing font with name {currentState.FontState.FontName} " +
+                    ParsingOptions.Logger.Warn($"Skipping a missing font with name {currentState.FontState!.FontName} " +
                                                $"since it is not present in the document and {nameof(PdfPig.ParsingOptions.SkipMissingFonts)} " +
                                                "is set to true. This may result in some text being skipped and not included in the output.");
 
@@ -469,11 +470,9 @@
              * 5. Restore the saved graphics state, as if by invoking the Q operator.
              */
 
-            var hasResources =
-                formStream.StreamDictionary.TryGet<DictionaryToken>(NameToken.Resources,
+            if (formStream.StreamDictionary.TryGet<DictionaryToken>(NameToken.Resources,
                     PdfScanner,
-                    out var formResources);
-            if (hasResources)
+                    out var formResources))
             {
                 ResourceStore.LoadResourceDictionary(formResources);
             }
@@ -484,7 +483,7 @@
             var startState = GetCurrentState();
 
             // Transparency Group XObjects
-            if (formStream.StreamDictionary.TryGet(NameToken.Group, PdfScanner, out DictionaryToken formGroupToken))
+            if (formStream.StreamDictionary.TryGet(NameToken.Group, PdfScanner, out DictionaryToken? formGroupToken))
             {
                 if (!formGroupToken.TryGet<NameToken>(NameToken.S, PdfScanner, out var sToken) ||
                     sToken != NameToken.Transparency)
@@ -512,16 +511,16 @@
                 startState.AlphaConstantNonStroking = 1.0;
                 startState.AlphaConstantStroking = 1.0;
 
-                if (formGroupToken.TryGet(NameToken.Cs, PdfScanner, out NameToken csNameToken))
+                if (formGroupToken.TryGet(NameToken.Cs, PdfScanner, out NameToken? csNameToken))
                 {
-                    startState.ColorSpaceContext.SetNonStrokingColorspace(csNameToken);
+                    startState.ColorSpaceContext!.SetNonStrokingColorspace(csNameToken);
                 }
-                else if (formGroupToken.TryGet(NameToken.Cs, PdfScanner, out ArrayToken csArrayToken)
+                else if (formGroupToken.TryGet(NameToken.Cs, PdfScanner, out ArrayToken? csArrayToken)
                          && csArrayToken.Length > 0)
                 {
                     if (csArrayToken.Data[0] is NameToken firstColorSpaceName)
                     {
-                        startState.ColorSpaceContext.SetNonStrokingColorspace(firstColorSpaceName, formGroupToken);
+                        startState.ColorSpaceContext!.SetNonStrokingColorspace(firstColorSpaceName, formGroupToken);
                     }
                     else
                     {
@@ -530,7 +529,7 @@
                 }
 
                 bool isolated = false;
-                if (formGroupToken.TryGet(NameToken.I, PdfScanner, out BooleanToken isolatedToken))
+                if (formGroupToken.TryGet(NameToken.I, PdfScanner, out BooleanToken? isolatedToken))
                 {
                     /*
                      * (Optional) A flag specifying whether the transparency group is isolated (see “Isolated Groups”).
@@ -542,7 +541,7 @@
                 }
 
                 bool knockout = false;
-                if (formGroupToken.TryGet(NameToken.K, PdfScanner, out BooleanToken knockoutToken))
+                if (formGroupToken.TryGet(NameToken.K, PdfScanner, out BooleanToken? knockoutToken))
                 {
                     /*
                      * (Optional) A flag specifying whether the transparency group is a knockout group (see “Knockout Groups”).
@@ -597,7 +596,7 @@
             // 5. Restore saved state.
             PopState();
 
-            if (hasResources)
+            if (formResources != null) // has resources
             {
                 ResourceStore.UnloadResourceDictionary();
             }
@@ -667,22 +666,22 @@
 
             var state = ResourceStore.GetExtendedGraphicsStateDictionary(stateName);
 
-            if (state.TryGet(NameToken.Lw, PdfScanner, out NumericToken lwToken))
+            if (state.TryGet(NameToken.Lw, PdfScanner, out NumericToken? lwToken))
             {
                 currentGraphicsState.LineWidth = lwToken.Data;
             }
 
-            if (state.TryGet(NameToken.Lc, PdfScanner, out NumericToken lcToken))
+            if (state.TryGet(NameToken.Lc, PdfScanner, out NumericToken? lcToken))
             {
                 currentGraphicsState.CapStyle = (LineCapStyle)lcToken.Int;
             }
 
-            if (state.TryGet(NameToken.Lj, PdfScanner, out NumericToken ljToken))
+            if (state.TryGet(NameToken.Lj, PdfScanner, out NumericToken? ljToken))
             {
                 currentGraphicsState.JoinStyle = (LineJoinStyle)ljToken.Int;
             }
 
-            if (state.TryGet(NameToken.Font, PdfScanner, out ArrayToken fontArray) && fontArray.Length == 2
+            if (state.TryGet(NameToken.Font, PdfScanner, out ArrayToken? fontArray) && fontArray.Length == 2
                 && fontArray.Data[0] is IndirectReferenceToken fontReference &&
                 fontArray.Data[1] is NumericToken sizeToken)
             {
@@ -691,7 +690,7 @@
                 ActiveExtendedGraphicsStateFont = ResourceStore.GetFontDirectly(fontReference);
             }
 
-            if (state.TryGet(NameToken.Ais, PdfScanner, out BooleanToken aisToken))
+            if (state.TryGet(NameToken.Ais, PdfScanner, out BooleanToken? aisToken))
             {
                 // The alpha source flag (“alpha is shape”), specifying
                 // whether the current soft mask and alpha constant are to be interpreted as
@@ -699,7 +698,7 @@
                 currentGraphicsState.AlphaSource = aisToken.Data;
             }
 
-            if (state.TryGet(NameToken.Ca, PdfScanner, out NumericToken caToken))
+            if (state.TryGet(NameToken.Ca, PdfScanner, out NumericToken? caToken))
             {
                 // (Optional; PDF 1.4) The current stroking alpha constant, specifying the constant
                 // shape or constant opacity value to be used for stroking operations in the
@@ -708,7 +707,7 @@
                 currentGraphicsState.AlphaConstantStroking = caToken.Data;
             }
 
-            if (state.TryGet(NameToken.CaNs, PdfScanner, out NumericToken cansToken))
+            if (state.TryGet(NameToken.CaNs, PdfScanner, out NumericToken? cansToken))
             {
                 // (Optional; PDF 1.4) The current stroking alpha constant, specifying the constant
                 // shape or constant opacity value to be used for NON-stroking operations in the
@@ -717,7 +716,7 @@
                 currentGraphicsState.AlphaConstantNonStroking = cansToken.Data;
             }
 
-            if (state.TryGet(NameToken.Op, PdfScanner, out BooleanToken OPToken))
+            if (state.TryGet(NameToken.Op, PdfScanner, out BooleanToken? OPToken))
             {
                 // (Optional) A flag specifying whether to apply overprint (see Section 4.5.6,
                 // “Overprint Control”). In PDF 1.2 and earlier, there is a single overprint
@@ -729,7 +728,7 @@
                 currentGraphicsState.Overprint = OPToken.Data;
             }
 
-            if (state.TryGet(NameToken.OpNs, PdfScanner, out BooleanToken opToken))
+            if (state.TryGet(NameToken.OpNs, PdfScanner, out BooleanToken? opToken))
             {
                 // (Optional; PDF 1.3) A flag specifying whether to apply overprint (see Section
                 // 4.5.6, “Overprint Control”) for painting operations other than stroking. If
@@ -737,13 +736,13 @@
                 currentGraphicsState.NonStrokingOverprint = opToken.Data;
             }
 
-            if (state.TryGet(NameToken.Opm, PdfScanner, out NumericToken opmToken))
+            if (state.TryGet(NameToken.Opm, PdfScanner, out NumericToken? opmToken))
             {
                 // (Optional; PDF 1.3) The overprint mode (see Section 4.5.6, “Overprint Control”).
                 currentGraphicsState.OverprintMode = opmToken.Data;
             }
 
-            if (state.TryGet(NameToken.Sa, PdfScanner, out BooleanToken saToken))
+            if (state.TryGet(NameToken.Sa, PdfScanner, out BooleanToken? saToken))
             {
                 // (Optional) A flag specifying whether to apply automatic stroke adjustment
                 // (see Section 6.5.4, “Automatic Stroke Adjustment”).
@@ -766,7 +765,7 @@
         /// <inheritdoc/>
         public virtual void SetInlineImageProperties(IReadOnlyDictionary<NameToken, IToken> properties)
         {
-            if (InlineImageBuilder == null)
+            if (InlineImageBuilder is null)
             {
                 ParsingOptions.Logger.Error(
                     "Begin inline image data (ID) command encountered without a corresponding begin inline image (BI) command.");
@@ -779,7 +778,7 @@
         /// <inheritdoc/>
         public virtual void EndInlineImage(IReadOnlyList<byte> bytes)
         {
-            if (InlineImageBuilder == null)
+            if (InlineImageBuilder is null)
             {
                 ParsingOptions.Logger.Error(
                     "End inline image (EI) command encountered without a corresponding begin inline image (BI) command.");
@@ -805,9 +804,10 @@
         protected abstract void RenderInlineImage(InlineImage inlineImage);
 
         /// <inheritdoc/>
-        public abstract void BeginMarkedContent(NameToken name,
-            NameToken propertyDictionaryName,
-            DictionaryToken properties);
+        public abstract void BeginMarkedContent(
+            NameToken name,
+            NameToken? propertyDictionaryName,
+            DictionaryToken? properties);
 
         /// <inheritdoc/>
         public abstract void EndMarkedContent();

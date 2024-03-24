@@ -1,4 +1,6 @@
-﻿// ReSharper disable RedundantDefaultMemberInitializer
+﻿#nullable disable
+
+// ReSharper disable RedundantDefaultMemberInitializer
 namespace UglyToad.PdfPig.Graphics
 {
     using Colors;
@@ -120,7 +122,7 @@ namespace UglyToad.PdfPig.Graphics
         /// <summary>
         /// The precision for rendering color gradients on the output device.
         /// </summary>
-        public decimal Smoothness { get; set; } = 0;
+        public double Smoothness { get; set; } = 0;
         #endregion
 
         /// <inheritdoc />

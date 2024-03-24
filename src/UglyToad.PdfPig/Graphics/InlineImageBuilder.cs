@@ -18,19 +18,20 @@
         /// <summary>
         /// Inline image properties.
         /// </summary>
-        public IReadOnlyDictionary<NameToken, IToken> Properties { get; internal set; }
+        public IReadOnlyDictionary<NameToken, IToken>? Properties { get; internal set; }
 
         /// <summary>
         /// Inline image bytes.
         /// </summary>
-        public IReadOnlyList<byte> Bytes { get; internal set; }
+        public IReadOnlyList<byte>? Bytes { get; internal set; }
 
-        internal InlineImage CreateInlineImage(TransformationMatrix transformationMatrix, ILookupFilterProvider filterProvider,
+        internal InlineImage CreateInlineImage(TransformationMatrix transformationMatrix,
+            ILookupFilterProvider filterProvider,
             IPdfTokenScanner tokenScanner,
             RenderingIntent defaultRenderingIntent,
             IResourceStore resourceStore)
         {
-            if (Properties == null || Bytes == null)
+            if (Properties is null || Bytes is null)
             {
                 throw new InvalidOperationException($"Inline image builder not completely defined before calling {nameof(CreateInlineImage)}.");
             }
@@ -48,13 +49,13 @@
 
             var bitsPerComponent = GetByKeys<NumericToken>(NameToken.BitsPerComponent, NameToken.Bpc, !isMask)?.Int ?? 1;
 
-            NameToken colorSpaceName = null;
+            NameToken? colorSpaceName = null;
 
             if (!isMask)
             {
                 colorSpaceName = GetByKeys<NameToken>(NameToken.ColorSpace, NameToken.Cs, false);
 
-                if (colorSpaceName == null)
+                if (colorSpaceName is null)
                 {
                     var colorSpaceArray = GetByKeys<ArrayToken>(NameToken.ColorSpace, NameToken.Cs, true);
 
@@ -82,7 +83,7 @@
 
             var filterName = GetByKeys<NameToken>(NameToken.Filter, NameToken.F, false);
 
-            if (filterName == null)
+            if (filterName is null)
             {
                 var filterArray = GetByKeys<ArrayToken>(NameToken.Filter, NameToken.F, false);
 
@@ -98,7 +99,7 @@
 
             var filters = filterProvider.GetNamedFilters(filterNames);
 
-            var decodeRaw = GetByKeys<ArrayToken>(NameToken.Decode, NameToken.D, false) ?? new ArrayToken(EmptyArray<IToken>.Instance);
+            var decodeRaw = GetByKeys<ArrayToken>(NameToken.Decode, NameToken.D, false) ?? new ArrayToken(Array.Empty<IToken>());
 
             var decode = decodeRaw.Data.OfType<NumericToken>().Select(x => x.Double).ToArray();
 
@@ -110,8 +111,11 @@
                 details);
         }
 
+#nullable disable
+
         // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
-        private T GetByKeys<T>(NameToken name1, NameToken name2, bool required) where T : IToken
+        private T GetByKeys<T>(NameToken name1, NameToken name2, bool required)
+            where T : class, IToken
         {
             if (Properties.TryGetValue(name1, out var val) && val is T result)
             {
@@ -131,7 +135,7 @@
                 throw new PdfDocumentFormatException($"Inline image dictionary missing required entry {name1}/{name2}.");
             }
 
-            return default(T);
+            return null;
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace UglyToad.PdfPig.Encryption
+﻿#nullable disable
+
+namespace UglyToad.PdfPig.Encryption
 {
     using System;
     using System.Collections.Generic;
@@ -11,12 +13,11 @@
     using Exceptions;
     using Tokens;
     using Util;
-    using Util.JetBrains.Annotations;
 
-    internal class EncryptionHandler : IEncryptionHandler
+    internal sealed class EncryptionHandler : IEncryptionHandler
     {
         private static readonly byte[] PaddingBytes =
-        {
+        [
             0x28, 0xBF, 0x4E, 0x5E,
             0x4E, 0x75, 0x8A, 0x41,
             0x64, 0x00, 0x4E, 0x56,
@@ -25,25 +26,19 @@
             0xD0, 0x68, 0x3E, 0x80,
             0x2F, 0x0C, 0xA9, 0xFE,
             0x64, 0x53, 0x69, 0x7A
-        };
+        ];
 
         private readonly HashSet<IndirectReference> previouslyDecrypted = new HashSet<IndirectReference>();
-
-        [CanBeNull]
         private readonly EncryptionDictionary encryptionDictionary;
-
-        [CanBeNull]
         private readonly CryptHandler cryptHandler;
-
         private readonly byte[] encryptionKey;
-
         private readonly bool useAes;
 
         public EncryptionHandler(EncryptionDictionary encryptionDictionary, TrailerDictionary trailerDictionary, IReadOnlyList<string> passwords)
         {
             this.encryptionDictionary = encryptionDictionary;
 
-            passwords = passwords ?? new[] { string.Empty };
+            passwords ??= [string.Empty];
 
             if (!passwords.Contains(string.Empty))
             {
@@ -59,26 +54,18 @@
             {
                 var token = trailerDictionary.Identifier[0];
 
-                switch (token)
-                {
-                    case HexToken hex:
-                        documentIdBytes = hex.Bytes.ToArray();
-                        break;
-                    case StringToken str:
-                        documentIdBytes = str.GetBytes();
-                        break;
-                    default:
-                        documentIdBytes = OtherEncodings.StringAsLatin1Bytes(token.Data);
-                        break;
-                }
-
+                documentIdBytes = token switch {
+                    HexToken hex => hex.Bytes.ToArray(),
+                    StringToken str => str.GetBytes(),
+                    _ => OtherEncodings.StringAsLatin1Bytes(token.Data)
+                };
             }
             else
             {
-                documentIdBytes = EmptyArray<byte>.Instance;
+                documentIdBytes = [];
             }
 
-            if (encryptionDictionary == null)
+            if (encryptionDictionary is null)
             {
                 return;
             }
@@ -179,7 +166,7 @@
 
                     // 3.   Pass the first element of the file identifier array to the hash function and finish the hash. 
                     UpdateMd5(md5, documentIdBytes);
-                    md5.TransformFinalBlock(EmptyArray<byte>.Instance, 0, 0);
+                    md5.TransformFinalBlock([], 0, 0);
 
                     var result = md5.Hash;
 
@@ -209,10 +196,10 @@
 
             if (encryptionDictionary.Revision >= 3)
             {
-                return encryptionDictionary.UserBytes.Take(16).SequenceEqual(output.Take(16));
+                return encryptionDictionary.UserBytes.AsSpan(0, 16).SequenceEqual(output.AsSpan(0, 16));
             }
 
-            return encryptionDictionary.UserBytes.SequenceEqual(output);
+            return encryptionDictionary.UserBytes.AsSpan().SequenceEqual(output);
         }
 
         private static bool IsUserPasswordRevision5And6(byte[] passwordBytes, EncryptionDictionary encryptionDictionary)
@@ -270,13 +257,13 @@
 
                 // 4. Create an RC4 encryption key using the first n bytes of the output from the final MD5 hash,
                 // where n is always 5 for revision 2 but for revision 3 or greater depends on the value of the encryption dictionary's Length entry. 
-                var key = hash.Take(length).ToArray();
+                var key = hash.AsSpan(0, length).ToArray();
 
                 if (encryptionDictionary.Revision == 2)
                 {
                     // 5. (Revision 2 only) Decrypt the value of the encryption dictionary's owner entry, 
                     // using an RC4 encryption function with the encryption key computed in step 1 - 4.
-                    userPassword = RC4.Encrypt(key, encryptionDictionary.OwnerBytes);
+                    userPassword = RC4.Encrypt(key, encryptionDictionary.OwnerBytes!);
                 }
                 else
                 {
@@ -290,12 +277,12 @@
 
                         if (i == 0)
                         {
-                            output = encryptionDictionary.OwnerBytes;
+                            output = encryptionDictionary.OwnerBytes!;
                         }
 
                         // Decrypt the value of the encryption dictionary's owner entry (first iteration) 
                         // or the output from the previous iteration using an RC4 encryption function. 
-                        output = RC4.Encrypt(keyIter, output);
+                        output = RC4.Encrypt(keyIter, output!);
                     }
 
                     userPassword = output;
@@ -337,7 +324,7 @@
 
         public IToken Decrypt(IndirectReference reference, IToken token)
         {
-            if (token == null)
+            if (token is null)
             {
                 throw new ArgumentNullException(nameof(token));
             }
@@ -597,25 +584,25 @@
                 // with the value 0xFFFFFFFF to the MD5 hash function.
                 if (revision >= 4 && !encryptionDictionary.EncryptMetadata)
                 {
-                    UpdateMd5(md5, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF });
+                    UpdateMd5(md5, [0xFF, 0xFF, 0xFF, 0xFF]);
                 }
 
                 // 7. Do the following 50 times: Take the output from the previous MD5 hash and
                 // pass the first n bytes of the output as input into a new MD5 hash,
                 // where n is the number of bytes of the encryption key as defined by the value
                 // of the encryption dictionary's Length entry. 
-                if (revision == 3 || revision == 4)
+                if (revision is 3 or 4)
                 {
                     var n = length;
 
-                    md5.TransformFinalBlock(EmptyArray<byte>.Instance, 0, 0);
+                    md5.TransformFinalBlock([], 0, 0);
 
                     var input = md5.Hash;
                     using (var newMd5 = MD5.Create())
                     {
                         for (var i = 0; i < 50; i++)
                         {
-                            input = newMd5.ComputeHash(input.Take(n).ToArray());
+                            input = newMd5.ComputeHash(input.AsSpan(0, n).ToArray());
                         }
                     }
 
@@ -627,7 +614,7 @@
                 }
                 else
                 {
-                    md5.TransformFinalBlock(EmptyArray<byte>.Instance, 0, 0);
+                    md5.TransformFinalBlock([], 0, 0);
 
                     var result = new byte[length];
 
@@ -656,14 +643,14 @@
 
                 if (encryptionDictionary.Revision == 6)
                 {
-                    intermediateKey = ComputeStupidIsoHash(password, ownerKeySalt, encryptionDictionary.UserBytes);
+                    intermediateKey = ComputeStupidIsoHash(password, ownerKeySalt, encryptionDictionary.UserBytes!);
                 }
                 else
                 {
-                    intermediateKey = ComputeSha256Hash(password, ownerKeySalt, encryptionDictionary.UserBytes);
+                    intermediateKey = ComputeSha256Hash(password, ownerKeySalt, encryptionDictionary.UserBytes!);
                 }
 
-                encryptedFileKey = encryptionDictionary.OwnerEncryptionBytes;
+                encryptedFileKey = encryptionDictionary.OwnerEncryptionBytes!;
             }
             else
             {
@@ -722,7 +709,7 @@
                 }
                 else
                 {
-                    sha.TransformFinalBlock(EmptyArray<byte>.Instance, 0, 0);
+                    sha.TransformFinalBlock([], 0, 0);
                 }
 
                 return sha.Hash;
@@ -736,7 +723,7 @@
 
         private static byte[] GetPaddedPassword(byte[] password)
         {
-            if (password == null || password.Length == 0)
+            if (password is null || password.Length == 0)
             {
                 return PaddingBytes;
             }
@@ -779,9 +766,9 @@
         private static byte[] ComputeStupidIsoHash(byte[] password, byte[] salt, byte[] vector)
         {
             // There are some details here https://web.archive.org/web/20180311160224/esec-lab.sogeti.com/posts/2011/09/14/the-undocumented-password-validation-algorithm-of-adobe-reader-x.html
-            if (vector == null)
+            if (vector is null)
             {
-                vector = EmptyArray<byte>.Instance;
+                vector = [];
             }
             else if (vector.Length > 0 && vector.Length < 48)
             {
@@ -802,7 +789,7 @@
                 sha256.TransformBlock(password, 0, password.Length, null, 0);
                 sha256.TransformBlock(salt, 0, salt.Length, null, 0);
                 sha256.TransformBlock(vector, 0, vector.Length, null, 0);
-                sha256.TransformFinalBlock(EmptyArray<byte>.Instance, 0, 0);
+                sha256.TransformFinalBlock([], 0, 0);
                 input = sha256.Hash;
             }
 
@@ -847,23 +834,12 @@
 
                 var sumOfFirstSixteenBytesOfX = x.Take(16).Sum(v => (long)v);
                 var mod3 = sumOfFirstSixteenBytesOfX % 3;
-
-                HashAlgorithm nextHash;
-                switch (mod3)
-                {
-                    case 0:
-                        nextHash = SHA256.Create();
-                        break;
-                    case 1:
-                        nextHash = SHA384.Create();
-                        break;
-                    case 2:
-                        nextHash = SHA512.Create();
-                        break;
-                    default:
-                        throw new PdfDocumentEncryptedException("Invalid remainder from summing first sixteen bytes of this round's hash.");
-                }
-
+                HashAlgorithm nextHash = mod3 switch {
+                    0 => SHA256.Create(),
+                    1 => SHA384.Create(),
+                    2 => SHA512.Create(),
+                    _ => throw new PdfDocumentEncryptedException("Invalid remainder from summing first sixteen bytes of this round's hash.")
+                };
                 input = nextHash.ComputeHash(x);
                 Array.Copy(input, key, 16);
                 Array.Copy(input, 16, iv, 0, 16);

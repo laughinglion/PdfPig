@@ -29,7 +29,7 @@
         /// <summary>
         /// The name of the font for the word.
         /// </summary>
-        public string FontName { get; }
+        public string? FontName { get; }
 
         /// <summary>
         /// The letters contained in the word.
@@ -42,7 +42,7 @@
         /// <param name="letters">The letters contained in the word, in the correct order.</param>
         public Word(IReadOnlyList<Letter> letters)
         {
-            if (letters == null)
+            if (letters is null)
             {
                 throw new ArgumentNullException(nameof(letters));
             }

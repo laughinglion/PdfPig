@@ -1,13 +1,9 @@
 ﻿namespace UglyToad.PdfPig.Tests.Functions
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using UglyToad.PdfPig.Functions;
     using UglyToad.PdfPig.Tests.Tokens;
     using UglyToad.PdfPig.Tokens;
     using UglyToad.PdfPig.Util;
-    using Xunit;
 
     public class PdfFunctionType0Tests
     {
@@ -16,7 +12,7 @@
 
         private static ArrayToken GetArrayToken(params double[] data)
         {
-            return new ArrayToken(data.Select(v => new NumericToken((decimal)v)).ToArray());
+            return new ArrayToken(data.Select(v => new NumericToken(v)).ToArray());
         }
 
         [Fact]

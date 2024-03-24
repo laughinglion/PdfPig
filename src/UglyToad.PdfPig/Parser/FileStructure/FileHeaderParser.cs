@@ -1,13 +1,14 @@
 ﻿namespace UglyToad.PdfPig.Parser.FileStructure
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using Content;
     using Core;
     using Logging;
     using Tokenization.Scanner;
     using Tokens;
-    using Util.JetBrains.Annotations;
+    using UglyToad.PdfPig.Util;
 
     /// <summary>
     /// Used to retrieve the version header from the PDF file.
@@ -28,10 +29,9 @@
     /// </remarks>
     internal static class FileHeaderParser
     {
-        [NotNull]
-        public static HeaderVersion Parse([NotNull] ISeekableTokenScanner scanner, IInputBytes inputBytes, bool isLenientParsing, ILog log)
+        public static HeaderVersion Parse(ISeekableTokenScanner scanner, IInputBytes inputBytes, bool isLenientParsing, ILog log)
         {
-            if (scanner == null)
+            if (scanner is null)
             {
                 throw new ArgumentNullException(nameof(scanner));
             }
@@ -40,7 +40,7 @@
 
             const int junkTokensTolerance = 30;
             var attempts = 0;
-            CommentToken comment;
+            CommentToken? comment;
             do
             {
                 if (attempts == junkTokensTolerance || !scanner.MoveNext())
@@ -57,7 +57,7 @@
                 comment = scanner.CurrentToken as CommentToken;
 
                 attempts++;
-            } while (comment == null);
+            } while (comment is null);
 
             return GetHeaderVersionAndResetScanner(comment, scanner, isLenientParsing, log);
         }
@@ -71,7 +71,7 @@
 
             const int toDoubleStartLength = 4;
 
-            if (!double.TryParse(comment.Data.Substring(toDoubleStartLength),
+            if (!double.TryParse(comment.Data.AsSpanOrSubstring(toDoubleStartLength),
                 NumberStyles.Number,
                 CultureInfo.InvariantCulture,
                 out var version))
@@ -91,7 +91,7 @@
             return result;
         }
 
-        private static bool TryBruteForceVersionLocation(long startPosition, IInputBytes inputBytes, out HeaderVersion headerVersion)
+        private static bool TryBruteForceVersionLocation(long startPosition, IInputBytes inputBytes, [NotNullWhen(true)] out HeaderVersion? headerVersion)
         {
             headerVersion = null;
 
@@ -119,7 +119,7 @@
 
                 if (actualIndex >= 0 && content.Length - actualIndex >= versionLength)
                 {
-                    var numberPart = content.Substring(actualIndex + 5, 3);
+                    var numberPart = content.AsSpanOrSubstring(actualIndex + 5, 3);
                     if (double.TryParse(
                             numberPart,
                             NumberStyles.Number,
