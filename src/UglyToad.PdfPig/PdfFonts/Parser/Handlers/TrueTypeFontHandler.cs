@@ -59,7 +59,7 @@
                 || !dictionary.TryGet(NameToken.Widths, out _))
             {
                 var isStandard14 = true;
-                if (!dictionary.TryGetOptionalTokenDirect(NameToken.BaseFont, pdfScanner, out NameToken? baseFont))
+                if (!dictionary.TryGetOptionalTokenDirect(NameToken.FontName, pdfScanner, out NameToken? baseFont))
                 {
                     throw new InvalidFontFormatException(
                         $"The provided TrueType font dictionary did not contain a /FirstChar or a /BaseFont entry: {dictionary}.");
